@@ -62,24 +62,26 @@ const NO_COMMENT_EXTS = new Set([".json", ".md", ".sql", ".html", ".env"]);
 // ─── Config Loader ────────────────────────────────────────────────────────────
 
 function loadConfig(rootDir) {
-  // 1. Try aisnap.config.json at root
-  const configFilePath = path.join(rootDir, "aisnap.config.json");
+  // 1. Try code-snapper.config.json at root
+  const configFilePath = path.join(rootDir, "code-snapper.config.json");
   if (fs.existsSync(configFilePath)) {
     try {
       const raw = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
       return mergeConfig(DEFAULT_CONFIG, raw);
     } catch {
-      console.warn("⚠️  Failed to parse aisnap.config.json — using defaults");
+      console.warn(
+        "⚠️  Failed to parse code-snapper.config.json — using defaults",
+      );
     }
   }
 
-  // 2. Try "aisnap" key in package.json
+  // 2. Try "code-snapper" key in package.json
   const pkgPath = path.join(rootDir, "package.json");
   if (fs.existsSync(pkgPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-      if (pkg["aisnap"]) {
-        return mergeConfig(DEFAULT_CONFIG, pkg["aisnap"]);
+      if (pkg["code-snapper"]) {
+        return mergeConfig(DEFAULT_CONFIG, pkg["code-snapper"]);
       }
     } catch {
       console.warn("⚠️  Failed to parse package.json — using defaults");

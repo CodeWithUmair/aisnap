@@ -1,17 +1,17 @@
-# aisnap
+# code-snapper
 
 > Dump your entire codebase into a single AI-ready context file — one command, zero config needed.
 
-Built for developers who work with AI assistants (Claude, ChatGPT, Gemini). Instead of copy-pasting files one by one, run `npx aisnap` and get a perfectly formatted `codebase.md` you can drop straight into any AI chat.
+Built for developers who work with AI assistants (Claude, ChatGPT, Gemini). Instead of copy-pasting files one by one, run `npx code-snapper` and get a perfectly formatted `codebase.md` you can drop straight into any AI chat.
 
 ## Usage
 
 ```bash
 # No install needed — just run in your project root
-npx aisnap
+npx code-snapper
 
 # Scaffold a config file (optional)
-npx aisnap --init
+npx code-snapper --init
 ```
 
 That's it. A `codebase.md` file appears at your project root.
@@ -24,9 +24,9 @@ The title is auto-pulled from your `package.json` name field.
 
 Zero config required — it works out of the box. But if you need to customize, you have two options:
 
-### Option A — `aisnap.config.json` (recommended)
+### Option A — `code-snapper.config.json` (recommended)
 
-Run `npx aisnap --init` to scaffold this file, then edit it:
+Run `npx code-snapper --init` to scaffold this file, then edit it:
 
 ```json
 {
@@ -76,13 +76,13 @@ Run `npx aisnap --init` to scaffold this file, then edit it:
 
 ### Option B — `package.json` key
 
-No extra file needed. Add an `"aisnap"` key to your existing `package.json`:
+No extra file needed. Add an `"code-snapper"` key to your existing `package.json`:
 
 ```json
 {
   "name": "my-app",
   "version": "1.0.0",
-  "aisnap": {
+  "code-snapper": {
     "output": "context.md",
     "extraExtensions": [".graphql"],
     "extraExcludeDirs": ["e2e"]
@@ -124,16 +124,16 @@ No extra file needed. Add an `"aisnap"` key to your existing `package.json`:
 ## CLI Reference
 
 ```bash
-npx aisnap           # Generate codebase.md
-npx aisnap --init    # Scaffold aisnap.config.json
-npx aisnap --help    # Show help
+npx code-snapper           # Generate codebase.md
+npx code-snapper --init    # Scaffold code-snapper.config.json
+npx code-snapper --help    # Show help
 ```
 
 ---
 
 ## Why?
 
-Working with AI on large codebases means constantly re-explaining context. `aisnap` solves this — one file, full context, ready to paste.
+Working with AI on large codebases means constantly re-explaining context. `code-snapper` solves this — one file, full context, ready to paste.
 
 The output file includes:
 

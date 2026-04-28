@@ -9,10 +9,10 @@ const rootDir = process.cwd();
 
 // ─── --init : scaffold config ─────────────────────────────────────────────────
 if (args.includes("--init")) {
-  const configPath = path.join(rootDir, "aisnap.config.json");
+  const configPath = path.join(rootDir, "code-snapper.config.json");
 
   if (fs.existsSync(configPath)) {
-    console.log("⚠️  aisnap.config.json already exists — skipping.");
+    console.log("⚠️  code-snapper.config.json already exists — skipping.");
     process.exit(0);
   }
 
@@ -31,7 +31,7 @@ if (args.includes("--init")) {
 
   fs.writeFileSync(configPath, JSON.stringify(scaffold, null, 2), "utf-8");
   console.log(
-    "✅ aisnap.config.json created — edit it to customize your setup.",
+    "✅ code-snapper.config.json created — edit it to customize your setup.",
   );
   process.exit(0);
 }
@@ -39,14 +39,14 @@ if (args.includes("--init")) {
 // ─── --help ───────────────────────────────────────────────────────────────────
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`
-  aisnap — Dump your codebase into a single AI-ready context file
+  code-snapper — Dump your codebase into a single AI-ready context file
 
   Usage:
-    npx aisnap              Run and generate codebase.md
-    npx aisnap --init       Scaffold an aisnap.config.json in current directory
-    npx aisnap --help       Show this help
+    npx code-snapper              Run and generate codebase.md
+    npx code-snapper --init       Scaffold an code-snapper.config.json in current directory
+    npx code-snapper --help       Show this help
 
-  Configuration (in aisnap.config.json OR package.json under "aisnap" key):
+  Configuration (in code-snapper.config.json OR package.json under "code-snapper" key):
 
     output              string    Output filename         (default: "codebase.md")
     titleFromPackageJson bool     Use package.json name as title  (default: true)
@@ -63,7 +63,7 @@ if (args.includes("--help") || args.includes("-h")) {
     includeFiles        string[]  Force-include specific relative file paths
 
   Example package.json config:
-    "aisnap": {
+    "code-snapper": {
       "output": "context.md",
       "extraExtensions": [".graphql"],
       "extraExcludeDirs": ["e2e", "fixtures"],
@@ -82,6 +82,6 @@ try {
     console.log(`✏️  Path comment injected into ${result.injected} files`);
   }
 } catch (err) {
-  console.error("❌ aisnap failed:", err.message);
+  console.error("❌ code-snapper failed:", err.message);
   process.exit(1);
 }

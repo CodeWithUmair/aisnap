@@ -1,5 +1,5 @@
 {
-  "name": "ai-ctx",
+  "name": "aisnap",
   "version": "1.0.0",
   "description": "Dump your entire codebase into a single AI-ready context file (codebase.md)",
   "keywords": [
@@ -14,7 +14,7 @@
   "author": "Umair Amir <codewithumair867@gmail.com>",
   "license": "MIT",
   "bin": {
-    "ai-ctx": "./bin/cli.js"
+    "aisnap": "./bin/cli.js"
   },
   "main": "./src/index.js",
   "engines": {
@@ -27,7 +27,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/CodeWithUmair/ai-ctx"
+    "url": "git+https://github.com/CodeWithUmair/ai-ctx.git"
   },
   "homepage": "https://github.com/CodeWithUmair/ai-ctx#readme"
 }

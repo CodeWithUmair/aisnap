@@ -1,89 +1,271 @@
-#!/usr/bin/env node
-// bin/cli.js
-// bin/cli.js
-
-const path = require("path");
+// src/index.js
 const fs = require("fs");
-const { generate, DEFAULT_CONFIG } = require("../src/index.js");
+const path = require("path");
 
-const args = process.argv.slice(2);
-const rootDir = process.cwd();
+// ─── Defaults ──────────────────────────────────────────────────────────────────
 
-// ─── --init : scaffold config ─────────────────────────────────────────────────
-if (args.includes("--init")) {
-  const configPath = path.join(rootDir, "ai-ctx.config.json");
+const DEFAULT_CONFIG = {
+  output: "codebase.md",
+  extensions: [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".json",
+    ".html",
+    ".md",
+    ".env",
+    ".prisma",
+    ".sql",
+  ],
+  excludeDirs: [
+    "node_modules",
+    "dist",
+    "build",
+    ".git",
+    ".next",
+    "coverage",
+    ".turbo",
+    "out",
+    ".cache",
+    "generated",
+  ],
+  excludeFiles: [
+    "codebase.md",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "generate-codebase.cjs",
+    "generate-codebase.js",
+  ],
+  includeFiles: [],
+  injectPathComment: true,
+  titleFromPackageJson: true,
+};
 
-  if (fs.existsSync(configPath)) {
-    console.log("⚠️  ai-ctx.config.json already exists — skipping.");
-    process.exit(0);
-  }
+const EXT_LANG = {
+  ".ts": "typescript",
+  ".tsx": "typescriptreact",
+  ".js": "javascript",
+  ".jsx": "javascriptreact",
+  ".json": "json",
+  ".css": "css",
+  ".html": "html",
+  ".md": "markdown",
+  ".prisma": "prisma",
+  ".sql": "sql",
+  ".env": "dotenv",
+};
 
-  const scaffold = {
-    output: "codebase.md",
-    titleFromPackageJson: true,
-    injectPathComment: true,
-    extensions: DEFAULT_CONFIG.extensions,
-    extraExtensions: [],
-    excludeDirs: DEFAULT_CONFIG.excludeDirs,
-    extraExcludeDirs: [],
-    excludeFiles: DEFAULT_CONFIG.excludeFiles,
-    extraExcludeFiles: [],
-    includeFiles: [],
-  };
+const NO_COMMENT_EXTS = new Set([".json", ".md", ".sql", ".html", ".env"]);
 
-  fs.writeFileSync(configPath, JSON.stringify(scaffold, null, 2), "utf-8");
-  console.log(
-    "✅ ai-ctx.config.json created — edit it to customize your setup.",
-  );
-  process.exit(0);
-}
+// ─── Config Loader ────────────────────────────────────────────────────────────
 
-// ─── --help ───────────────────────────────────────────────────────────────────
-if (args.includes("--help") || args.includes("-h")) {
-  console.log(`
-  ai-ctx — Dump your codebase into a single AI-ready context file
-
-  Usage:
-    npx ai-ctx              Run and generate codebase.md
-    npx ai-ctx --init       Scaffold an ai-ctx.config.json in current directory
-    npx ai-ctx --help       Show this help
-
-  Configuration (in ai-ctx.config.json OR package.json under "ai-ctx" key):
-
-    output              string    Output filename         (default: "codebase.md")
-    titleFromPackageJson bool     Use package.json name as title  (default: true)
-    injectPathComment   bool     Inject // path at top of each file (default: true)
-
-    extensions          string[]  Replace default extension list
-    extraExtensions     string[]  Add ON TOP of defaults (e.g. [".graphql", ".yaml"])
-
-    excludeDirs         string[]  Replace default excluded dirs
-    extraExcludeDirs    string[]  Add ON TOP of defaults (e.g. ["scripts", "mocks"])
-
-    excludeFiles        string[]  Replace default excluded files
-    extraExcludeFiles   string[]  Add ON TOP of defaults
-    includeFiles        string[]  Force-include specific relative file paths
-
-  Example package.json config:
-    "ai-ctx": {
-      "output": "context.md",
-      "extraExtensions": [".graphql"],
-      "extraExcludeDirs": ["e2e", "fixtures"],
-      "extraExcludeFiles": [".eslintrc.js"]
+function loadConfig(rootDir) {
+  // 1. Try aisnap.config.json at root
+  const configFilePath = path.join(rootDir, "aisnap.config.json");
+  if (fs.existsSync(configFilePath)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(configFilePath, "utf-8"));
+      return mergeConfig(DEFAULT_CONFIG, raw);
+    } catch {
+      console.warn("⚠️  Failed to parse aisnap.config.json — using defaults");
     }
-  `);
-  process.exit(0);
+  }
+
+  // 2. Try "aisnap" key in package.json
+  const pkgPath = path.join(rootDir, "package.json");
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      if (pkg["aisnap"]) {
+        return mergeConfig(DEFAULT_CONFIG, pkg["aisnap"]);
+      }
+    } catch {
+      console.warn("⚠️  Failed to parse package.json — using defaults");
+    }
+  }
+
+  return { ...DEFAULT_CONFIG };
 }
 
-// ─── Run ──────────────────────────────────────────────────────────────────────
-try {
-  console.log("🔍 Scanning codebase...");
-  const result = generate(rootDir);
-  console.log(`\n✅ ${result.output} generated — ${result.files} files`);
-  if (result.injected > 0) {
-    console.log(`✏️  Path comment injected into ${result.injected} files`);
-  }
-} catch (err) {
-  console.error("❌ ai-ctx failed:", err.message);
-  process.exit(1);
+function mergeConfig(defaults, override) {
+  const merged = { ...defaults };
+
+  if (override.output) merged.output = override.output;
+  if (typeof override.injectPathComment === "boolean")
+    merged.injectPathComment = override.injectPathComment;
+  if (typeof override.titleFromPackageJson === "boolean")
+    merged.titleFromPackageJson = override.titleFromPackageJson;
+
+  // Arrays: if provided, REPLACE defaults — gives full control
+  if (Array.isArray(override.extensions))
+    merged.extensions = override.extensions;
+  if (Array.isArray(override.excludeDirs))
+    merged.excludeDirs = override.excludeDirs;
+  if (Array.isArray(override.excludeFiles))
+    merged.excludeFiles = override.excludeFiles;
+  if (Array.isArray(override.includeFiles))
+    merged.includeFiles = override.includeFiles;
+
+  // Extra arrays — additive on top of defaults
+  if (Array.isArray(override.extraExtensions))
+    merged.extensions = [
+      ...new Set([...merged.extensions, ...override.extraExtensions]),
+    ];
+  if (Array.isArray(override.extraExcludeDirs))
+    merged.excludeDirs = [
+      ...new Set([...merged.excludeDirs, ...override.extraExcludeDirs]),
+    ];
+  if (Array.isArray(override.extraExcludeFiles))
+    merged.excludeFiles = [
+      ...new Set([...merged.excludeFiles, ...override.extraExcludeFiles]),
+    ];
+
+  return merged;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getProjectName(rootDir) {
+  const pkgPath = path.join(rootDir, "package.json");
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+      return pkg.name || null;
+    } catch {}
+  }
+  return null;
+}
+
+function getLanguage(filePath) {
+  const base = path.basename(filePath);
+  if (EXT_LANG[base]) return EXT_LANG[base];
+  const ext = path.extname(filePath);
+  return EXT_LANG[ext] || "text";
+}
+
+function shouldInjectComment(filePath, config) {
+  if (!config.injectPathComment) return false;
+  const base = path.basename(filePath);
+  if (base === ".env" || base.startsWith(".env.")) return false;
+  const ext = path.extname(filePath);
+  return !NO_COMMENT_EXTS.has(ext);
+}
+
+function injectPathComment(filePath, content, relativePath) {
+  const comment = `// ${relativePath}`;
+  const firstLine = content.split("\n")[0];
+
+  // Already has a path comment — replace it
+  if (/^\/\/ \S+\.\w+/.test(firstLine.trim())) {
+    return comment + "\n" + content.slice(firstLine.length + 1);
+  }
+
+  // Shebang at top
+  if (content.startsWith("#!")) {
+    const idx = content.indexOf("\n");
+    return content.slice(0, idx + 1) + comment + "\n" + content.slice(idx + 1);
+  }
+
+  return comment + "\n" + content;
+}
+
+function collectFiles(dir, rootDir, config, results = []) {
+  const excludeDirsSet = new Set(config.excludeDirs);
+  const excludeFilesSet = new Set([...config.excludeFiles, config.output]);
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const isHidden = entry.name.startsWith(".");
+    const isEnvFile = entry.name === ".env" || entry.name.startsWith(".env.");
+
+    if (isHidden && !isEnvFile) continue;
+    if (excludeDirsSet.has(entry.name)) continue;
+    if (excludeFilesSet.has(entry.name)) continue;
+
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      collectFiles(fullPath, rootDir, config, results);
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name);
+      if (config.extensions.includes(ext) || isEnvFile) {
+        results.push(fullPath);
+      }
+    }
+  }
+
+  return results;
+}
+
+// ─── Main Generator ───────────────────────────────────────────────────────────
+
+function generate(rootDir = process.cwd()) {
+  const config = loadConfig(rootDir);
+
+  let files = collectFiles(rootDir, rootDir, config);
+
+  // Force-include extra files
+  if (config.includeFiles.length > 0) {
+    for (const rel of config.includeFiles) {
+      const abs = path.join(rootDir, rel);
+      if (fs.existsSync(abs) && !files.includes(abs)) {
+        files.push(abs);
+      }
+    }
+  }
+
+  files.sort();
+
+  const projectName = config.titleFromPackageJson
+    ? getProjectName(rootDir)
+    : null;
+  const title = projectName
+    ? `# ${projectName} — Full Codebase (AI Context)`
+    : "# Full Codebase (AI Context)";
+
+  const lines = [];
+  lines.push(`${title}\n`);
+  lines.push(`> Generated: ${new Date().toISOString()}`);
+  lines.push(`> Total files: ${files.length}\n`);
+
+  let injectedCount = 0;
+  const skippedInject = [];
+
+  for (const filePath of files) {
+    const relativePath = filePath
+      .replace(rootDir + path.sep, "")
+      .replace(/\\/g, "/");
+    let content = fs.readFileSync(filePath, "utf-8");
+    const lang = getLanguage(filePath);
+
+    if (shouldInjectComment(filePath, config)) {
+      const updated = injectPathComment(filePath, content, relativePath);
+      if (updated !== content) {
+        fs.writeFileSync(filePath, updated, "utf-8");
+        content = updated;
+        injectedCount++;
+      }
+    } else {
+      skippedInject.push(relativePath);
+    }
+
+    lines.push(`## ${relativePath}\n`);
+    lines.push("```" + lang);
+    lines.push(content.trimEnd());
+    lines.push("```\n");
+  }
+
+  const outputPath = path.join(rootDir, config.output);
+  fs.writeFileSync(outputPath, lines.join("\n"), "utf-8");
+
+  return {
+    files: files.length,
+    injected: injectedCount,
+    output: config.output,
+  };
+}
+
+module.exports = { generate, loadConfig, DEFAULT_CONFIG };

@@ -1,0 +1,33 @@
+{
+  "name": "ai-ctx",
+  "version": "1.0.0",
+  "description": "Dump your entire codebase into a single AI-ready context file (codebase.md)",
+  "keywords": [
+    "ai",
+    "context",
+    "codebase",
+    "llm",
+    "claude",
+    "gpt",
+    "codedump"
+  ],
+  "author": "Umair Amir <codewithumair867@gmail.com>",
+  "license": "MIT",
+  "bin": {
+    "ai-ctx": "./bin/cli.js"
+  },
+  "main": "./src/index.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeWithUmair/ai-ctx"
+  },
+  "homepage": "https://github.com/CodeWithUmair/ai-ctx#readme"
+}
